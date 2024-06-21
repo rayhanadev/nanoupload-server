@@ -1,25 +1,20 @@
 name = "nanoupload-server"
-route = "nano.rayhanadev.com/*"
 compatibility_date = "2023-12-01"
 main = "src/index.ts"
 minify = true
 
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "nano-dev"
+r2_buckets = [
+  { binding = "BUCKET", bucket_name = "nano-dev" }
+]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "nano-dev"
-database_id = "6b52e13a-20be-4c19-8c09-74342bc2056d"
+d1_databases = [
+  { binding = "DB", database_name = "nano-dev", database_id = "6b52e13a-20be-4c19-8c09-74342bc2056d" }
+]
 
 [env.production]
-
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "nano"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "nano"
-database_id = "e32628bc-dae9-4df9-95c9-79b692d1da40"
+r2_buckets = [
+  { binding = "BUCKET", bucket_name = "nano" }
+]
+d1_databases = [
+  { binding = "DB", database_name = "nano", database_id = "e32628bc-dae9-4df9-95c9-79b692d1da40" }
+]

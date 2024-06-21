@@ -1,13 +1,17 @@
 {
   "name": "nanoupload-server",
   "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {
+    "@t3-oss/env-core": "^0.10.1",
     "drizzle-orm": "^0.31.2",
     "hono": "^4.4.7",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240620.0",
