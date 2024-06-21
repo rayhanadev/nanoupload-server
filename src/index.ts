@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { DrizzleD1Database, drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { customAlphabet } from "nanoid";
+import { z } from "zod";
 
 import { links } from "./db/models/links";
 import { texts } from "./db/models/texts";
@@ -25,16 +26,25 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
+const uploadSchema = z.object({
+  type: z.enum(["i", "f"]),
+  file: z.instanceof(File),
+  ext: z.string().optional(),
+});
+
+type UploadSchemaType = z.infer<typeof uploadSchema>;
+
 app.post("/upload", async (c) => {
   try {
-    const { file, type, ext } = await c.req.parseBody<{
-      type: string;
-      file: File;
-      ext?: string;
-    }>();
+    const { file, type, ext } = await c.req.parseBody<UploadSchemaType>();
 
-    // TODO: validate
-    // TODO: validate file type
+    const validationResult = uploadSchema.safeParse({ type, file, ext });
+
+    if (!validationResult.success) {
+      console.error(validationResult.error.flatten().fieldErrors);
+      return c.text("Bad Request", 400);
+    }
+
     const id = nanoid();
 
     switch (type) {
@@ -56,14 +66,23 @@ app.post("/upload", async (c) => {
   }
 });
 
+const createSchema = z.object({
+  payload: z.string(),
+  type: z.enum(["l", "t"]),
+});
+
+type CreateSchemaType = z.infer<typeof createSchema>;
+
 app.post("/create", async (c) => {
   try {
-    const { payload, type } = await c.req.json<{
-      payload: string;
-      type: string;
-    }>();
+    const { payload, type } = await c.req.json<CreateSchemaType>();
 
-    // TODO: validate parameters
+    const validationResult = createSchema.safeParse({ type, payload });
+
+    if (!validationResult.success) {
+      console.error(validationResult.error.flatten().fieldErrors);
+      return c.text("Bad Request", 400);
+    }
 
     const id = nanoid();
 
