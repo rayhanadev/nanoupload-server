@@ -4,7 +4,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler deploy --minify src/index.ts"
+    "deploy": "wrangler deploy --minify src/index.ts --env production"
   },
   "dependencies": {
     "@t3-oss/env-core": "^0.10.1",
