@@ -26,133 +26,164 @@ app.get("/", (c) => {
 });
 
 app.post("/upload", async (c) => {
-  const { file, type, ext } = await c.req.parseBody<{
-    type: string;
-    file: File;
-    ext?: string;
-  }>();
+  try {
+    const { file, type, ext } = await c.req.parseBody<{
+      type: string;
+      file: File;
+      ext?: string;
+    }>();
 
-  // TODO: validate
-  // TODO: validate file type
+    // TODO: validate
+    // TODO: validate file type
+    const id = nanoid();
 
-  const id = nanoid();
+    switch (type) {
+      case "i":
+        await c.env.BUCKET.put(`images/${id}${ext}`, await file.arrayBuffer());
+        break;
+      case "f":
+        await c.env.BUCKET.put(`files/${id}${ext}`, await file.arrayBuffer());
+        break;
+    }
 
-  switch (type) {
-    case "i":
-      await c.env.BUCKET.put(`images/${id}${ext}`, file);
-      break;
-    case "f":
-      await c.env.BUCKET.put(`files/${id}${ext}`, file);
-      break;
+    return c.json({
+      id,
+      url: `/${type}/${id}${ext}`,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return c.text("Internal Server Error", 500);
   }
-
-  return c.json({
-    id,
-    url: `/${type}/${id}${ext}`,
-  });
 });
 
 app.post("/create", async (c) => {
-  const { payload, type } = await c.req.json<{
-    payload: string;
-    type: string;
-  }>();
+  try {
+    const { payload, type } = await c.req.json<{
+      payload: string;
+      type: string;
+    }>();
 
-  // TODO: validate parameters
+    // TODO: validate parameters
 
-  const id = nanoid();
+    const id = nanoid();
 
-  switch (type) {
-    case "l":
-      await c.env.DB.client.insert(links).values({
-        id,
-        link: payload,
-      });
-      break;
-    case "t":
-      await c.env.DB.client.insert(texts).values({
-        id,
-        content: payload,
-      });
-      break;
+    switch (type) {
+      case "l":
+        await c.env.DB.client.insert(links).values({
+          id,
+          link: payload,
+        });
+        break;
+      case "t":
+        await c.env.DB.client.insert(texts).values({
+          id,
+          content: payload,
+        });
+        break;
+    }
+
+    return c.json({
+      id,
+      url: `/${type}/${id}`,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return c.text("Internal Server Error", 500);
   }
-
-  return c.json({
-    id,
-    url: `/${type}/${id}`,
-  });
 });
 
 app.get("/l/:id", async (c) => {
-  const { id } = c.req.param();
-  const link = await c.env.DB.client
-    .select()
-    .from(links)
-    .where(eq(links.id, id))
-    .execute();
+  try {
+    const { id } = c.req.param();
+    const link = await c.env.DB.client
+      .select()
+      .from(links)
+      .where(eq(links.id, id))
+      .execute();
 
-  if (link.length === 0) {
-    return c.text("Not Found", 404);
-  }
+    if (link.length === 0) {
+      return c.text("Not Found", 404);
+    }
 
-  if (!link[0].link) {
+    if (!link[0].link) {
+      console.error("Link not found in database for id:", id);
+      return c.text("Internal Server Error", 500);
+    }
+
+    return c.redirect(link[0].link);
+  } catch (error: any) {
+    console.error(error);
     return c.text("Internal Server Error", 500);
   }
-
-  return c.redirect(link[0].link);
 });
 
 app.get("/t/:id", async (c) => {
-  const { id } = c.req.param();
-  const text = await c.env.DB.client
-    .select()
-    .from(texts)
-    .where(eq(texts.id, id))
-    .execute();
+  try {
+    const { id } = c.req.param();
+    const text = await c.env.DB.client
+      .select()
+      .from(texts)
+      .where(eq(texts.id, id))
+      .execute();
 
-  if (text.length === 0) {
-    return c.text("Not Found", 404);
-  }
+    if (text.length === 0) {
+      return c.text("Not Found", 404);
+    }
 
-  if (!text[0].content) {
+    if (!text[0].content) {
+      console.error("Text not found in database for id:", id);
+      return c.text("Internal Server Error", 500);
+    }
+
+    return c.text(text[0].content);
+  } catch (error: any) {
+    console.error(error);
     return c.text("Internal Server Error", 500);
   }
-
-  return c.text(text[0].content);
 });
 
 app.get("/i/:filename", async (c) => {
-  const { filename } = c.req.param();
-  const image = await c.env.BUCKET.get(`images/${filename}`);
+  try {
+    const { filename } = c.req.param();
+    const image = await c.env.BUCKET.get(`images/${filename}`);
 
-  if (!image) {
-    return c.text("Not Found", 404);
+    if (!image) {
+      return c.text("Not Found", 404);
+    }
+
+    const headers = new Headers();
+    image.writeHttpMetadata(headers);
+    headers.set("etag", image.httpEtag);
+
+    return new Response(image.body, {
+      headers,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return c.text("Internal Server Error", 500);
   }
-
-  const headers = new Headers();
-  image.writeHttpMetadata(headers);
-  headers.set("etag", image.httpEtag);
-
-  return new Response(image.body, {
-    headers,
-  });
 });
 
 app.get("/f/:filename", async (c) => {
-  const { filename } = c.req.param();
-  const file = await c.env.BUCKET.get(`files/${filename}`);
+  try {
+    const { filename } = c.req.param();
+    const file = await c.env.BUCKET.get(`files/${filename}`);
 
-  if (!file) {
-    return c.text("Not Found", 404);
+    if (!file) {
+      return c.text("Not Found", 404);
+    }
+
+    const headers = new Headers();
+    file.writeHttpMetadata(headers);
+    headers.set("etag", file.httpEtag);
+
+    return new Response(file.body, {
+      headers,
+    });
+  } catch (error: any) {
+    console.error(error);
+    return c.text("Internal Server Error", 500);
   }
-
-  const headers = new Headers();
-  file.writeHttpMetadata(headers);
-  headers.set("etag", file.httpEtag);
-
-  return new Response(file.body, {
-    headers,
-  });
 });
 
 export default app;
