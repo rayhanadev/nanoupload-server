@@ -26,9 +26,19 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
+app.post("/upload", async (c) => {
+  const { file } = await c.req.parseBody<{ type: string; file: File }>();
+
+  // TODO: validate
+  // TODO: validate file type
+
+  const id = nanoid();
+  c.env.BUCKET.put(id, file);
+  return c.json({ id });
+});
+
 app.post("/create", async (c) => {
-  const { name, payload, type } = await c.req.json<{
-    name: string;
+  const { payload, type } = await c.req.json<{
     payload: string;
     type: string;
   }>();
@@ -51,20 +61,20 @@ app.post("/create", async (c) => {
       });
       break;
     case "i":
-      // TODO: upload file to R2
       await c.env.DB.client.insert(images).values({
         id,
-        slug: name,
+        slug: payload,
       });
       break;
     case "f":
-      // TODO: upload file to R2
       await c.env.DB.client.insert(files).values({
         id,
-        slug: name,
+        slug: payload,
       });
       break;
   }
+
+  return c.json({ id });
 });
 
 app.get("/l/:id", (c) => {
